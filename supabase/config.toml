@@ -1,0 +1,5 @@
+# Supabase local / CLI config（按需调整）
+# 文档：https://supabase.com/docs/guides/cli/config
+
+[functions.transcribe-audio]
+verify_jwt = true

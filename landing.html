@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>英语精读 · Intensive Reading</title>
+  <meta name="description" content="一句一句，把听力听懂。句级精听、生词本、跟读与学习看板，专注精读精听。" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #0c1524;
+      --ink-mid: #152238;
+      --ink-soft: #1e3350;
+      --paper: #f3efe6;
+      --paper-dim: #d9d2c3;
+      --amber: #e8a84a;
+      --amber-soft: rgba(232, 168, 74, 0.18);
+      --amber-glow: rgba(232, 168, 74, 0.45);
+      --teal: #5ec4b2;
+      --muted: #8fa0b8;
+      --line: rgba(243, 239, 230, 0.12);
+      --font-display: "Fraunces", Georgia, serif;
+      --font-body: "Source Sans 3", "PingFang SC", "Microsoft YaHei", sans-serif;
+      --radius: 18px;
+      --max: 1120px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: var(--font-body);
+      color: var(--paper);
+      background: var(--ink);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; display: block; }
+
+    /* Atmosphere */
+    .page-bg {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background:
+        radial-gradient(900px 520px at 12% -10%, rgba(94, 196, 178, 0.16), transparent 60%),
+        radial-gradient(700px 480px at 88% 8%, rgba(232, 168, 74, 0.14), transparent 55%),
+        radial-gradient(600px 400px at 50% 100%, rgba(30, 51, 80, 0.9), transparent 70%),
+        linear-gradient(165deg, #0a1220 0%, #122033 42%, #0c1524 100%);
+    }
+    .page-bg::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: 0.35;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E");
+      pointer-events: none;
+    }
+
+    .wrap {
+      width: min(100% - 2.5rem, var(--max));
+      margin-inline: auto;
+    }
+
+    /* Nav */
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.15rem 0;
+      opacity: 0;
+      animation: rise 0.8s ease 0.05s forwards;
+    }
+    .nav-brand {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 1.05rem;
+      letter-spacing: 0.02em;
+    }
+    .nav-brand span {
+      color: var(--amber);
+      font-weight: 500;
+      margin-left: 0.35rem;
+      font-size: 0.85rem;
+      opacity: 0.85;
+    }
+    .nav-cta {
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 0.5rem 1rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--paper);
+      transition: border-color 0.2s, background 0.2s, transform 0.2s;
+    }
+    .nav-cta:hover {
+      border-color: var(--amber);
+      background: var(--amber-soft);
+      transform: translateY(-1px);
+    }
+
+    /* Hero */
+    .hero {
+      min-height: calc(100svh - 4.5rem);
+      display: grid;
+      grid-template-columns: 1fr 1.05fr;
+      gap: 3rem;
+      align-items: center;
+      padding: 1.5rem 0 4rem;
+    }
+    .hero-copy {
+      opacity: 0;
+      animation: rise 0.9s ease 0.15s forwards;
+    }
+    .brand-mark {
+      font-family: var(--font-display);
+      font-size: clamp(2.75rem, 5.5vw, 4.25rem);
+      font-weight: 700;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      margin: 0 0 1.1rem;
+    }
+    .brand-mark em {
+      font-style: normal;
+      color: var(--amber);
+    }
+    .hero h2 {
+      font-family: var(--font-display);
+      font-size: clamp(1.35rem, 2.4vw, 1.75rem);
+      font-weight: 550;
+      line-height: 1.3;
+      margin: 0 0 0.85rem;
+      color: var(--paper);
+      max-width: 18ch;
+    }
+    .hero-lead {
+      margin: 0 0 1.75rem;
+      color: var(--muted);
+      font-size: 1.05rem;
+      max-width: 34ch;
+    }
+    .cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      font-family: var(--font-body);
+      font-weight: 600;
+      font-size: 1rem;
+      padding: 0.85rem 1.35rem;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s, background 0.2s, border-color 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #f0b45a 0%, #e8a84a 45%, #d4892e 100%);
+      color: #1a1206;
+      box-shadow: 0 10px 28px rgba(232, 168, 74, 0.28);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 34px rgba(232, 168, 74, 0.38);
+    }
+    .btn-ghost {
+      background: transparent;
+      border-color: var(--line);
+      color: var(--paper-dim);
+    }
+    .btn-ghost:hover {
+      border-color: rgba(243, 239, 230, 0.35);
+      color: var(--paper);
+      transform: translateY(-1px);
+    }
+
+    .hero-stage {
+      opacity: 0;
+      animation: rise 1s ease 0.28s forwards;
+      position: relative;
+    }
+    .hero-stage::before {
+      content: "";
+      position: absolute;
+      inset: -8% -6%;
+      background: radial-gradient(ellipse at 50% 40%, var(--amber-glow), transparent 62%);
+      filter: blur(28px);
+      opacity: 0.35;
+      z-index: 0;
+      pointer-events: none;
+      animation: lamp 4.5s ease-in-out infinite alternate;
+    }
+
+    /* Player mock */
+    .player {
+      position: relative;
+      z-index: 1;
+      background: linear-gradient(180deg, rgba(30, 51, 80, 0.92) 0%, rgba(18, 32, 51, 0.96) 100%);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 1rem 1.1rem 1.15rem;
+      box-shadow:
+        0 24px 60px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(8px);
+      transform: translateY(0);
+      transition: transform 0.4s ease;
+    }
+    .player-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .player-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.35rem 0.65rem;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(12, 21, 36, 0.35);
+    }
+    .player-chip strong {
+      color: var(--amber);
+      font-weight: 700;
+    }
+    .player-title {
+      text-align: center;
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin: 0 0 1rem;
+      letter-spacing: 0.01em;
+    }
+    .player-title small {
+      display: block;
+      margin-top: 0.25rem;
+      font-family: var(--font-body);
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--muted);
+    }
+    .subs {
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+      min-height: 9.5rem;
+      padding: 0.35rem 0.15rem 0.75rem;
+      margin-bottom: 0.85rem;
+      border-bottom: 1px solid var(--line);
+    }
+    .sub-line {
+      display: grid;
+      grid-template-columns: 3.2rem 1fr;
+      gap: 0.65rem;
+      align-items: baseline;
+      padding: 0.55rem 0.7rem;
+      border-radius: 10px;
+      border-left: 3px solid transparent;
+      color: var(--muted);
+      font-size: 0.95rem;
+      transition: background 0.45s ease, color 0.45s ease, border-color 0.45s ease, transform 0.45s ease;
+    }
+    .sub-line time {
+      font-variant-numeric: tabular-nums;
+      font-size: 0.78rem;
+      opacity: 0.8;
+    }
+    .sub-line.is-active {
+      background: linear-gradient(90deg, var(--amber-soft), transparent 85%);
+      border-left-color: var(--amber);
+      color: var(--paper);
+      transform: translateX(2px);
+      box-shadow: 0 0 0 1px rgba(232, 168, 74, 0.08);
+      animation: pulse-line 2.2s ease-in-out infinite;
+    }
+    .sub-line.is-active time { color: var(--amber); }
+
+    .progress {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 0.65rem;
+      align-items: center;
+      margin-bottom: 1rem;
+      font-size: 0.75rem;
+      font-variant-numeric: tabular-nums;
+      color: var(--muted);
+    }
+    .progress-track {
+      position: relative;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(243, 239, 230, 0.12);
+      overflow: visible;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 36%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--teal), var(--amber));
+      transition: width 0.6s ease;
+    }
+    .progress-knob {
+      position: absolute;
+      top: 50%;
+      left: 36%;
+      width: 12px;
+      height: 12px;
+      margin: -6px 0 0 -6px;
+      border-radius: 50%;
+      background: var(--paper);
+      box-shadow: 0 0 0 3px rgba(232, 168, 74, 0.35);
+      transition: left 0.6s ease;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1.75rem;
+    }
+    .ctrl {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 1px solid var(--line);
+      background: rgba(12, 21, 36, 0.4);
+      color: var(--paper);
+      display: grid;
+      place-items: center;
+      font-size: 0.85rem;
+      cursor: default;
+    }
+    .ctrl-play {
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(145deg, rgba(232, 168, 74, 0.25), rgba(94, 196, 178, 0.15));
+      border-color: rgba(232, 168, 74, 0.45);
+      color: var(--amber);
+      font-size: 1.1rem;
+    }
+    .ctrl-labels {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1.75rem;
+      margin-top: 0.55rem;
+      text-align: center;
+      font-size: 0.68rem;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+
+    /* Sections */
+    section.block {
+      padding: 5rem 0;
+    }
+    .block-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin: 0 0 0.75rem;
+    }
+    .block h3 {
+      font-family: var(--font-display);
+      font-size: clamp(1.75rem, 3vw, 2.35rem);
+      font-weight: 650;
+      line-height: 1.15;
+      margin: 0 0 0.75rem;
+      max-width: 16ch;
+    }
+    .block-lead {
+      margin: 0 0 2.5rem;
+      color: var(--muted);
+      max-width: 42ch;
+      font-size: 1.05rem;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem 1.5rem;
+      counter-reset: step;
+      border-top: 1px solid var(--line);
+      padding-top: 2rem;
+    }
+    .step {
+      position: relative;
+      padding-top: 0.25rem;
+    }
+    .step::before {
+      counter-increment: step;
+      content: "0" counter(step);
+      display: block;
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      color: var(--amber);
+      margin-bottom: 0.75rem;
+      letter-spacing: 0.04em;
+    }
+    .step h4 {
+      margin: 0 0 0.45rem;
+      font-size: 1.15rem;
+      font-weight: 650;
+      font-family: var(--font-display);
+    }
+    .step p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.98rem;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0;
+      border-top: 1px solid var(--line);
+    }
+    .feature {
+      padding: 1.6rem 1.4rem 1.6rem 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .feature:nth-child(odd) { padding-right: 1.75rem; }
+    .feature:nth-child(even) {
+      padding-left: 1.75rem;
+      border-left: 1px solid var(--line);
+    }
+    .feature h4 {
+      margin: 0 0 0.4rem;
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+    .feature p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.98rem;
+      max-width: 36ch;
+    }
+
+    .finale {
+      text-align: center;
+      padding: 5.5rem 0 4rem;
+      position: relative;
+    }
+    .finale::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 0;
+      width: min(520px, 90%);
+      height: 1px;
+      transform: translateX(-50%);
+      background: linear-gradient(90deg, transparent, var(--amber), transparent);
+      opacity: 0.55;
+    }
+    .finale h3 {
+      font-family: var(--font-display);
+      font-size: clamp(1.9rem, 3.5vw, 2.75rem);
+      margin: 0 0 0.75rem;
+      max-width: none;
+    }
+    .finale p {
+      margin: 0 auto 1.75rem;
+      color: var(--muted);
+      max-width: 36ch;
+    }
+    .finale .cta-row { justify-content: center; }
+
+    footer {
+      padding: 1.5rem 0 2.5rem;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.85rem;
+      border-top: 1px solid var(--line);
+    }
+    footer span { color: var(--amber); }
+
+    /* Reveal on scroll */
+    .reveal {
+      opacity: 0;
+      transform: translateY(22px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    .reveal.is-in {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(18px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulse-line {
+      0%, 100% { box-shadow: 0 0 0 1px rgba(232, 168, 74, 0.08); }
+      50% { box-shadow: 0 0 18px rgba(232, 168, 74, 0.18); }
+    }
+    @keyframes lamp {
+      from { opacity: 0.28; transform: scale(0.98); }
+      to { opacity: 0.42; transform: scale(1.03); }
+    }
+
+    @media (max-width: 900px) {
+      .hero {
+        grid-template-columns: 1fr;
+        gap: 2.25rem;
+        min-height: auto;
+        padding-top: 0.75rem;
+        padding-bottom: 3rem;
+      }
+      .hero h2 { max-width: none; }
+      .hero-lead { max-width: none; }
+      .steps { grid-template-columns: 1fr; gap: 1.75rem; }
+      .features { grid-template-columns: 1fr; }
+      .feature:nth-child(odd),
+      .feature:nth-child(even) {
+        padding: 1.4rem 0;
+        border-left: none;
+      }
+      .player { transform: none; }
+      .subs { min-height: 8.5rem; }
+      .sub-line { font-size: 0.9rem; }
+    }
+
+    @media (max-width: 480px) {
+      .wrap { width: min(100% - 1.5rem, var(--max)); }
+      .brand-mark { font-size: 2.45rem; }
+      .player { padding: 0.85rem; }
+      .controls { gap: 1.2rem; }
+      .ctrl-labels { gap: 1.2rem; font-size: 0.62rem; }
+      .cta-row .btn { width: 100%; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+      .nav, .hero-copy, .hero-stage { opacity: 1; transform: none; animation: none; }
+      .reveal { opacity: 1; transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-bg" aria-hidden="true"></div>
+
+  <header class="wrap">
+    <nav class="nav" aria-label="主导航">
+      <a class="nav-brand" href="landing.html">英语精读 <span>Intensive Reading</span></a>
+      <a class="nav-cta" href="index.html">开始精读</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero wrap">
+      <div class="hero-copy">
+        <p class="brand-mark">英语<em>精读</em></p>
+        <h2>一句一句，把听力听懂</h2>
+        <p class="hero-lead">句级字幕跟随、点词记生词、跟读与听写，把每一句真正吃透。</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="index.html">开始精读</a>
+          <a class="btn btn-ghost" href="#how">看看怎么学</a>
+        </div>
+      </div>
+
+      <div class="hero-stage" id="hero-stage">
+        <div class="player" id="player-mock" aria-label="产品界面演示：句级精听播放器" role="img">
+          <div class="player-top">
+            <span class="player-chip">学习看板</span>
+            <span class="player-chip">生词本 <strong>(3)</strong></span>
+          </div>
+          <h3 class="player-title">
+            Learning Habits
+            <small>Cambridge IELTS · Listening Practice</small>
+          </h3>
+          <div class="subs" id="subs">
+            <div class="sub-line" data-i="0">
+              <time>00:12</time>
+              <span>Learning a language takes time and patience.</span>
+            </div>
+            <div class="sub-line is-active" data-i="1">
+              <time>00:16</time>
+              <span>Practice makes perfect every day.</span>
+            </div>
+            <div class="sub-line" data-i="2">
+              <time>00:21</time>
+              <span>Consistency is the key to success.</span>
+            </div>
+          </div>
+          <div class="progress">
+            <span id="t-cur">01:15</span>
+            <div class="progress-track">
+              <div class="progress-fill" id="prog-fill"></div>
+              <div class="progress-knob" id="prog-knob"></div>
+            </div>
+            <span>03:30</span>
+          </div>
+          <div class="controls" aria-hidden="true">
+            <div class="ctrl" title="上一句">◀◀</div>
+            <div class="ctrl ctrl-play" id="ctrl-play">❚❚</div>
+            <div class="ctrl" title="下一句">▶▶</div>
+          </div>
+          <div class="ctrl-labels" aria-hidden="true">
+            <span>上一句</span>
+            <span>播放 / 暂停</span>
+            <span>下一句</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block wrap" id="how">
+      <p class="block-label reveal">How it works</p>
+      <h3 class="reveal">怎么学</h3>
+      <p class="block-lead reveal">三步闭环：听懂这一句，记住这一词，看见这一天的坚持。</p>
+      <div class="steps">
+        <article class="step reveal">
+          <h4>跟句听</h4>
+          <p>字幕随音频高亮滚动，上一句 / 下一句精准跳转，单句 AB 循环跟读。</p>
+        </article>
+        <article class="step reveal">
+          <h4>点词记</h4>
+          <p>点击生词即查即收，生词本可导出 CSV / Anki，复习不再散落各处。</p>
+        </article>
+        <article class="step reveal">
+          <h4>看板看</h4>
+          <p>积分、连续打卡与热力图，把每一次精听都记进学习节奏里。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="block wrap" id="features">
+      <p class="block-label reveal">Capabilities</p>
+      <h3 class="reveal">核心能力</h3>
+      <p class="block-lead reveal">为精听精读设计的一整套工具，而不是又一个刷题列表。</p>
+      <div class="features">
+        <article class="feature reveal">
+          <h4>句级精听</h4>
+          <p>时间轴对齐每一句，当前句高亮跟随，听不懂就反复这一句。</p>
+        </article>
+        <article class="feature reveal">
+          <h4>AB 循环跟读</h4>
+          <p>单句循环 Shadowing，练听力也练开口，节奏由你掌控。</p>
+        </article>
+        <article class="feature reveal">
+          <h4>听写遮罩</h4>
+          <p>英文先模糊再揭开，逼自己听写，而不是眼睛先扫过字幕。</p>
+        </article>
+        <article class="feature reveal">
+          <h4>AI 语法拆解</h4>
+          <p>主谓宾与从句结构一键拆开，长难句不再只靠语感硬扛。</p>
+        </article>
+        <article class="feature reveal">
+          <h4>生词本导出</h4>
+          <p>CSV 与 Anki 一键带走，和你已有的记忆系统无缝衔接。</p>
+        </article>
+        <article class="feature reveal">
+          <h4>积分打卡</h4>
+          <p>精读、精听都有反馈，徽章与连续天数让坚持看得见。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="finale wrap">
+      <h3 class="reveal">从这一句开始</h3>
+      <p class="reveal">打开示例材料，立刻体验句级精听与生词本。</p>
+      <div class="cta-row reveal">
+        <a class="btn btn-primary" href="index.html">开始精读</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap">
+    <p>英语精读 <span>·</span> Intensive Reading</p>
+  </footer>
+
+  <script>
+    (function () {
+      const lines = Array.from(document.querySelectorAll(".sub-line"));
+      const fill = document.getElementById("prog-fill");
+      const knob = document.getElementById("prog-knob");
+      const tCur = document.getElementById("t-cur");
+      const playBtn = document.getElementById("ctrl-play");
+      const stage = document.getElementById("hero-stage");
+      const player = document.getElementById("player-mock");
+
+      const times = ["00:12", "00:16", "00:21"];
+      const progresses = [28, 36, 48];
+      let idx = 1;
+      let playing = true;
+      let timer = null;
+
+      function setActive(i) {
+        idx = i;
+        lines.forEach((el, n) => el.classList.toggle("is-active", n === i));
+        const p = progresses[i];
+        fill.style.width = p + "%";
+        knob.style.left = p + "%";
+        tCur.textContent = times[i] === "00:12" ? "01:12" : times[i] === "00:16" ? "01:16" : "01:21";
+        // keep demo clock near the wireframe mid-track feel
+        if (i === 0) tCur.textContent = "01:12";
+        if (i === 1) tCur.textContent = "01:16";
+        if (i === 2) tCur.textContent = "01:21";
+      }
+
+      function tick() {
+        setActive((idx + 1) % lines.length);
+      }
+
+      function start() {
+        if (timer) clearInterval(timer);
+        timer = setInterval(tick, 2200);
+        playing = true;
+        playBtn.textContent = "❚❚";
+      }
+
+      function stop() {
+        if (timer) clearInterval(timer);
+        timer = null;
+        playing = false;
+        playBtn.textContent = "▶";
+      }
+
+      playBtn.addEventListener("click", function () {
+        if (playing) stop();
+        else start();
+      });
+
+      if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        start();
+      } else {
+        stop();
+      }
+
+      // Light parallax on desktop
+      if (window.matchMedia("(pointer: fine)").matches && stage && player) {
+        stage.addEventListener("mousemove", function (e) {
+          const r = stage.getBoundingClientRect();
+          const x = (e.clientX - r.left) / r.width - 0.5;
+          const y = (e.clientY - r.top) / r.height - 0.5;
+          player.style.transform = "translate(" + (x * 10) + "px, " + (y * 8) + "px)";
+        });
+        stage.addEventListener("mouseleave", function () {
+          player.style.transform = "translate(0, 0)";
+        });
+      }
+
+      // Scroll reveal
+      const reveals = document.querySelectorAll(".reveal");
+      if ("IntersectionObserver" in window) {
+        const io = new IntersectionObserver(
+          function (entries) {
+            entries.forEach(function (entry) {
+              if (entry.isIntersecting) {
+                entry.target.classList.add("is-in");
+                io.unobserve(entry.target);
+              }
+            });
+          },
+          { threshold: 0.18, rootMargin: "0px 0px -40px 0px" }
+        );
+        reveals.forEach(function (el) { io.observe(el); });
+      } else {
+        reveals.forEach(function (el) { el.classList.add("is-in"); });
+      }
+    })();
+  </script>
+</body>
+</html>

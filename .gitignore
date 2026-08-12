@@ -1,1 +1,17 @@
+﻿# Local / editor
+.DS_Store
+Thumbs.db
+*.log
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Supabase CLI local
+.supabase/
+supabase/.temp/
+
+# Node / deploy leftovers
+node_modules/
 .vercel
