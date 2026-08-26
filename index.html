@@ -3392,9 +3392,6 @@
           maybePromptTrialEndedOnLogin();
         }
 
-        if (getPendingInviteCode()) {
-          processReferralRewards(user).catch((e) => console.warn(e));
-        }
         return userProfile;
       } catch (err) {
         console.warn('[Auth] loadUserData exception (non-fatal):', err);
