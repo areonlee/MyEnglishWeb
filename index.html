@@ -8142,18 +8142,38 @@
         });
         console.log('[Auth] signUp response', { user: data?.user, session: !!data?.session, error });
         if (error) throw error;
-        if (data.session?.user || data.user) {
-          const user = data.session?.user || data.user;
-          if (data.session?.user) {
-            enterMainApp(user);
-            setGateAuthSuccess('注册成功，已自动登录');
-            loadUserData(user).catch((e) => console.warn('[Auth] post-signup loadUserData', e));
-          } else {
-            // 需邮箱确认：无 session，留在登录页
-            showAuthGate();
-            setGateAuthMode('login');
-            setGateAuthSuccess('注册成功！请查收邮箱确认后，再回来登录。');
+        const signedUser = data.session?.user || data.user;
+        const alreadyExists = !!(signedUser && !data.session
+          && Array.isArray(signedUser.identities) && signedUser.identities.length === 0);
+        if (alreadyExists) {
+          const { data: loginData, error: loginErr } = await supabaseClient.auth.signInWithPassword({
+            email,
+            password,
+          });
+          if (!loginErr && loginData?.user) {
+            enterMainApp(loginData.user);
+            setGateAuthSuccess('该邮箱已注册，已为你登录');
+            loadUserData(loginData.user).catch((e) => console.warn('[Auth] post-signup existing login', e));
+            return;
           }
+          showAuthGate();
+          setGateAuthMode('login');
+          const loginMsg = String(loginErr?.message || '');
+          if (/not confirmed|email_not_confirmed|未确认/i.test(loginMsg)) {
+            setGateAuthError('该邮箱已注册，请先完成邮箱确认后再登录');
+          } else {
+            setGateAuthError('该邮箱已注册，请直接登录');
+          }
+          return;
+        }
+        if (data.session?.user) {
+          enterMainApp(data.session.user);
+          setGateAuthSuccess('注册成功，已自动登录');
+          loadUserData(data.session.user).catch((e) => console.warn('[Auth] post-signup loadUserData', e));
+        } else if (data.user) {
+          showAuthGate();
+          setGateAuthMode('login');
+          setGateAuthSuccess('注册成功！请查收邮箱确认后，再回来登录。');
         } else {
           showAuthGate();
           setGateAuthError('注册失败，请稍后重试');
@@ -8161,7 +8181,13 @@
       } catch (err) {
         console.warn('[Auth] register failed', err);
         showAuthGate();
-        setGateAuthError(err.message || '注册失败，请稍后重试');
+        const msg = String(err.message || '');
+        if (/already registered|already been registered|already exists/i.test(msg) || msg.includes('已注册')) {
+          setGateAuthMode('login');
+          setGateAuthError('该邮箱已注册，请直接登录');
+        } else {
+          setGateAuthError(err.message || '注册失败，请稍后重试');
+        }
       } finally {
         pendingExplicitAuth = false;
         if (btn) { btn.disabled = false; btn.textContent = '免费开始学习'; }
