@@ -1802,6 +1802,12 @@
     const SUPABASE_URL = 'https://wxgrcbdzccjtveuostus.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_0cT61Y3LuiEa7PJa0V-SLQ_oRnC2K-S';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    /** 邮箱确认后的落地页。GitHub Pages 项目站必须带 /MyEnglishWeb/，不能跳到 areonlee.github.io 根路径（会 404）。 */
+    function getAuthEmailRedirectTo() {
+      const path = window.location.pathname.replace(/\/[^/]*$/, '/');
+      return new URL('auth-success.html', window.location.origin + path).href;
+    }
     const REF_STORAGE_KEY = 'intensive-reading-ref-code';
     const VIP_REDEEM_OPTIONS = [
       { cost: 100, days: 7, label: '积分体验券' },
@@ -8129,7 +8135,10 @@
         const { data, error } = await supabaseClient.auth.signUp({
           email,
           password,
-          options: inviteAtSignup ? { data: { invited_by: inviteAtSignup } } : {},
+          options: {
+            emailRedirectTo: getAuthEmailRedirectTo(),
+            ...(inviteAtSignup ? { data: { invited_by: inviteAtSignup } } : {}),
+          },
         });
         console.log('[Auth] signUp response', { user: data?.user, session: !!data?.session, error });
         if (error) throw error;
