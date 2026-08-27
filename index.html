@@ -7650,6 +7650,7 @@
 
     /** 登录流程标记：避免初始化清会话与点击登录互相干扰 */
     let pendingExplicitAuth = false;
+    let gateAuthBusy = false;
     let authListenerBound = false;
 
     function showAuthGate() {
@@ -8013,6 +8014,17 @@
       okEl.classList.remove('hidden');
     }
 
+    function formatRegisterError(err) {
+      const msg = String(err?.message || err || '');
+      if (/email rate limit exceeded|over_email_send_rate_limit/i.test(msg)) {
+        return '确认邮件发送过于频繁，请稍后再试。若已收到邮件，请先完成确认再登录。';
+      }
+      if (/already registered|already been registered|already exists/i.test(msg) || msg.includes('已注册')) {
+        return '该邮箱已注册，请直接登录';
+      }
+      return msg || '注册失败，请稍后重试';
+    }
+
     function setGateAuthMode(mode) {
       authMode = mode === 'register' ? 'register' : 'login';
       const loginTab = document.getElementById('gate-tab-login');
@@ -8114,6 +8126,7 @@
     }
 
     async function handleGateRegister() {
+      if (gateAuthBusy) return;
       const email = document.getElementById('gate-email')?.value.trim() || '';
       const password = document.getElementById('gate-password')?.value || '';
       setGateAuthError('');
@@ -8128,6 +8141,7 @@
       }
       const btn = document.getElementById('btn-gate-register');
       if (btn) { btn.disabled = true; btn.textContent = '注册中…'; }
+      gateAuthBusy = true;
       pendingExplicitAuth = true;
       try {
         const inviteAtSignup = getInviteCodeFromUrl();
@@ -8181,15 +8195,12 @@
       } catch (err) {
         console.warn('[Auth] register failed', err);
         showAuthGate();
-        const msg = String(err.message || '');
-        if (/already registered|already been registered|already exists/i.test(msg) || msg.includes('已注册')) {
-          setGateAuthMode('login');
-          setGateAuthError('该邮箱已注册，请直接登录');
-        } else {
-          setGateAuthError(err.message || '注册失败，请稍后重试');
-        }
+        const friendly = formatRegisterError(err);
+        if (friendly.includes('已注册')) setGateAuthMode('login');
+        setGateAuthError(friendly);
       } finally {
         pendingExplicitAuth = false;
+        gateAuthBusy = false;
         if (btn) { btn.disabled = false; btn.textContent = '免费开始学习'; }
       }
     }
