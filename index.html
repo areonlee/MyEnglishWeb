@@ -1449,16 +1449,16 @@
         </div>
 
         <!--
-          系统 AI 字幕走 Edge Function transcribe-audio，内部 provider=qwen_asr。
-          Secrets 需配置 DASHSCOPE_API_KEY。sensevoice 仅代码备用。
+          系统 AI 字幕走 Edge Function transcribe-audio，内部 provider=sensevoice（SiliconFlow）。
+          Secrets 使用已有的 SILICONFLOW_API_KEY。百炼仅高级选项（用户自己的 Key）。
         -->
         <div id="import-panel-ai" class="space-y-4 hidden">
           <div class="p-3 rounded-xl border border-emerald-200 bg-emerald-50/40">
             <label class="flex items-start gap-2 cursor-pointer">
-              <input type="radio" name="asr-mode" id="asr-mode-qwen" value="qwen_asr" checked class="mt-1 text-emerald-600 focus:ring-emerald-500" />
+              <input type="radio" name="asr-mode" id="asr-mode-system" value="system" checked class="mt-1 text-emerald-600 focus:ring-emerald-500" />
               <span class="min-w-0">
                 <span class="block text-sm font-medium text-slate-800">AI生成字幕</span>
-                <span id="asr-system-points-hint" class="block text-[11px] text-slate-500 mt-0.5 leading-relaxed">使用平台服务生成字幕，每次消耗 10 积分</span>
+                <span id="asr-system-points-hint" class="block text-[11px] text-slate-500 mt-0.5 leading-relaxed">SiliconFlow 系统转写，精度一般，每次消耗 10 积分</span>
               </span>
             </label>
           </div>
@@ -1468,16 +1468,16 @@
               高级设置（使用自己的 API Key，不消耗积分）
             </summary>
             <div class="px-3 pb-3 space-y-3 border-t border-slate-100">
-              <!-- 兼容保留：SenseVoice 系统备用，界面不展示 -->
-              <input type="radio" name="asr-mode" id="asr-mode-system" value="system" class="hidden" />
+              <!-- 兼容保留：平台百炼路径不再作为默认 -->
+              <input type="radio" name="asr-mode" id="asr-mode-qwen" value="qwen_asr" class="hidden" />
               <input type="radio" name="asr-mode-legacy" id="asr-mode-byok" value="byok" class="hidden" />
               <span id="asr-qwen-points-hint" class="hidden"></span>
 
               <label class="flex items-start gap-2 cursor-pointer pt-2">
                 <input type="radio" name="asr-mode" id="asr-mode-dashscope" value="dashscope_byok" class="mt-1 text-primary-600 focus:ring-primary-500" />
                 <span class="min-w-0">
-                  <span class="block text-sm font-medium text-slate-800">阿里云百炼 Key（推荐国内用户）</span>
-                  <span class="block text-[11px] text-slate-500 mt-0.5">对应 DashScope qwen_asr，使用自己的 Key，不消耗积分</span>
+                  <span class="block text-sm font-medium text-slate-800">阿里云百炼 Key（精度更高）</span>
+                  <span class="block text-[11px] text-slate-500 mt-0.5">自己去百炼注册并填写 Key，不消耗积分</span>
                 </span>
               </label>
               <div id="asr-dashscope-fields" class="hidden ml-6 space-y-2">
@@ -1814,8 +1814,8 @@
     ];
 
     /**
-     * AI 字幕：系统默认 Edge transcribe-audio + provider=qwen_asr（平台积分）
-     * 高级入口：DashScope BYOK / OpenAI Whisper；sensevoice / SiliconFlow 代码兼容保留
+     * AI 字幕：系统默认 Edge transcribe-audio + provider=sensevoice（SiliconFlow，平台积分）
+     * 高级入口：用户自己的阿里云百炼 Key；OpenAI Whisper 代码保留
      */
     const ASR_POINTS_COST = 10;
     /** 大陆版隐藏 OpenAI Whisper 入口；海外版改为 true 即可恢复 UI（不删底层函数） */
@@ -8283,7 +8283,7 @@
     let currentCourseId = null;
     let courseLibraryCache = [];
     let importMode = 'local'; // 'local' | 'url' | 'ai'
-    let asrBillingMode = 'qwen_asr'; // default system Edge qwen_asr; 'system'=sensevoice fallback; BYOK/whisper kept in code
+    let asrBillingMode = 'system'; // default SiliconFlow SenseVoice; dashscope_byok = user Bailian key
     let lastAiAsrProvider = null; // 'qwen_asr' | 'sensevoice' | 'whisper'
 
     const AUDIO_IDB_NAME = 'intensive-reading-audio-db';
@@ -9935,13 +9935,7 @@ Rules: Use concise Chinese for explanations. Identify at least skeleton fields. 
       if (whisperUi) whisperUi.classList.toggle('hidden', !ENABLE_OPENAI_WHISPER_UI);
 
       if (hint) {
-        if (isDash) {
-          hint.textContent = '使用你的阿里云 Key，不消耗积分。';
-        } else if (isByok) {
-          hint.textContent = '使用自己的 Key，不消耗积分。';
-        } else {
-          hint.textContent = `使用平台服务生成字幕，每次消耗 ${ASR_POINTS_COST} 积分（当前 ${getDisplayPoints()}）。`;
-        }
+        hint.textContent = `SiliconFlow 系统转写，精度一般，每次消耗 ${ASR_POINTS_COST} 积分（当前 ${getDisplayPoints()}）。`;
       }
 
       const qwenRadio = document.getElementById('asr-mode-qwen');
@@ -9959,10 +9953,9 @@ Rules: Use concise Chinese for explanations. Identify at least skeleton fields. 
     }
 
     function setAsrBillingMode(mode) {
-      if (mode === 'system' || mode === 'sensevoice') asrBillingMode = 'system';
+      if (mode === 'dashscope_byok') asrBillingMode = 'dashscope_byok';
       else if (mode === 'byok' || mode === 'whisper_user_key') asrBillingMode = 'byok';
-      else if (mode === 'dashscope_byok') asrBillingMode = 'dashscope_byok';
-      else asrBillingMode = 'qwen_asr';
+      else asrBillingMode = 'system';
       try { localStorage.setItem(ASR_BILLING_STORAGE, asrBillingMode); } catch { /* ignore */ }
       updateAsrModeUI();
     }
@@ -10033,7 +10026,7 @@ Rules: Use concise Chinese for explanations. Identify at least skeleton fields. 
           restoreMode = 'byok';
           if (providerSelect) providerSelect.value = 'openai';
         } else {
-          restoreMode = 'qwen_asr';
+          restoreMode = 'system';
         }
 
         if (restoreMode === 'whisper_user_key') {
@@ -10041,19 +10034,21 @@ Rules: Use concise Chinese for explanations. Identify at least skeleton fields. 
             if (providerSelect) providerSelect.value = 'openai';
             restoreMode = 'byok';
           } else {
-            restoreMode = 'qwen_asr';
+            restoreMode = 'system';
           }
         }
 
         if (!ENABLE_OPENAI_WHISPER_UI) {
           const p = String(providerSelect?.value || savedProvider || '').toLowerCase();
-          if (restoreMode === 'byok' && p === 'openai') restoreMode = 'qwen_asr';
+          if (restoreMode === 'byok' && p === 'openai') restoreMode = 'system';
         }
+
+        if (restoreMode === 'qwen_asr') restoreMode = 'system';
 
         asrBillingMode = restoreMode === 'system' || restoreMode === 'sensevoice' ? 'system'
           : restoreMode === 'byok' ? 'byok'
           : restoreMode === 'dashscope_byok' ? 'dashscope_byok'
-          : 'qwen_asr';
+          : 'system';
         const remappedWhisperOff = !ENABLE_OPENAI_WHISPER_UI
           && asrBillingMode === 'qwen_asr'
           && (savedMode === 'byok' || savedMode === 'whisper_user_key');
@@ -12062,17 +12057,11 @@ Rules: Use concise Chinese for explanations. Identify at least skeleton fields. 
         }
         qwenSegments = qwenResult.segments;
         lastAiAsrProvider = 'qwen_asr';
-      } else if (asrBillingMode === 'system') {
-        // 备用快速模式（界面已隐藏）
+      } else {
+        report('正在生成字幕…', 25);
         const sys = await invokeSystemTranscribe(audioFile, onProgress, 'sensevoice');
         srtText = sys && sys.srtText ? sys.srtText : sys;
         lastAiAsrProvider = 'sensevoice';
-      } else {
-        report('正在生成字幕…', 25);
-        const sys = await invokeSystemTranscribe(audioFile, onProgress, 'qwen_asr');
-        qwenSegments = sys && Array.isArray(sys.segments) ? sys.segments : null;
-        srtText = sys && sys.srtText ? sys.srtText : '';
-        lastAiAsrProvider = 'qwen_asr';
       }
 
       let sentences;
@@ -12656,7 +12645,7 @@ Rules: Use concise Chinese for explanations. Identify at least skeleton fields. 
       if (document.getElementById('asr-mode-system')?.checked) setAsrBillingMode('system');
     });
     document.getElementById('asr-mode-qwen')?.addEventListener('change', () => {
-      if (document.getElementById('asr-mode-qwen')?.checked) setAsrBillingMode('qwen_asr');
+      if (document.getElementById('asr-mode-qwen')?.checked) setAsrBillingMode('system');
     });
     document.getElementById('asr-mode-dashscope')?.addEventListener('change', () => {
       if (document.getElementById('asr-mode-dashscope')?.checked) setAsrBillingMode('dashscope_byok');
