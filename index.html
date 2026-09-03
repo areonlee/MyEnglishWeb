@@ -7624,7 +7624,7 @@
       try {
         const data = await fetchDictionary(clean);
         currentDictData = data;
-        const zhMap = data?.[0]?._source === 'baidu' ? {} : await buildZhMap(data);
+        const zhMap = data?.[0]?._source === 'wiktionary' ? {} : await buildZhMap(data);
         selectedWordDefinitionZh = getFirstDefinitionZh(data, zhMap);
         if (!selectedWordContext) selectedWordContext = resolveWordContext();
         const rendered = renderDictEntriesWithZh(data, zhMap);
@@ -9347,15 +9347,20 @@ Rules: Use concise Chinese for explanations. Identify at least skeleton fields. 
       if (!payload?.ok) {
         throw new Error(payload?.message || payload?.error || '词典暂时连不上，请稍后再试');
       }
-      const zh = String(payload.zh || '').trim();
-      if (!zh) throw new Error('暂无该词释义');
+      const meanings = Array.isArray(payload.meanings) ? payload.meanings : [];
+      if (!meanings.length) throw new Error('暂无该词英文释义');
       return [{
-        _source: 'baidu',
+        _source: 'wiktionary',
         phonetic: payload.phonetic || '',
-        meanings: [{
-          partOfSpeech: '释义',
-          definitions: [{ definition: zh }],
-        }],
+        meanings: meanings.map((m) => ({
+          partOfSpeech: String(m?.partOfSpeech || ''),
+          definitions: (Array.isArray(m?.definitions) ? m.definitions : [])
+            .map((d) => ({
+              definition: String(d?.definition || '').trim(),
+              example: String(d?.example || '').trim(),
+            }))
+            .filter((d) => d.definition),
+        })).filter((m) => m.definitions.length),
       }];
     }
 

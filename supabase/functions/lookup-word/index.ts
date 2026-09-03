@@ -1,21 +1,24 @@
 /**
  * Edge Function: lookup-word
  *
- * JWT 鉴权 → 调用百度翻译通用文本 API → 返回中文释义。
- * Secrets: BAIDU_FANYI_APP_ID, BAIDU_FANYI_SECRET
- *
- * 百度控制台不要限制 IP 白名单（Edge Function 出口 IP 会变）。
+ * JWT 鉴权 → 经服务器请求 Wiktionary 英英释义（用户浏览器不直连国外词典）。
+ * 不使用百度翻译，避免中文释义。
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
-import md5 from 'https://esm.sh/blueimp-md5@2.19.0';
 
-const BAIDU_URL = 'https://fanyi-api.baidu.com/api/trans/vip/translate';
+const WIKT_URL = 'https://en.wiktionary.org/api/rest_v1/page/definition/';
+const UA = 'AIEnglishReadingAssistant/1.0 (https://www.aijingdu.com; word lookup)';
 
 const corsHeaders: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
+type Meaning = {
+  partOfSpeech: string;
+  definitions: Array<{ definition: string; example?: string }>;
 };
 
 function jsonResponse(body: unknown, status = 200) {
@@ -25,22 +28,61 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
-function mapBaiduError(code: string): string {
-  const table: Record<string, string> = {
-    '52001': '词典服务超时，请稍后再试',
-    '52002': '词典服务异常，请稍后再试',
-    '52003': '百度翻译未授权，请检查 APP ID 和密钥',
-    '54000': '查询参数无效',
-    '54001': '百度签名错误，请检查 APP ID 和密钥',
-    '54003': '查询过于频繁，请稍后再试',
-    '54004': '百度翻译额度不足',
-    '54005': '请求过长',
-    '58000': '百度拒绝了服务器 IP。请在翻译开放平台关闭 IP 白名单限制',
-    '58001': '不支持该语种',
-    '58002': '服务当前已关闭',
-    '90107': '百度翻译尚未开通该服务',
-  };
-  return table[code] || ('词典查询失败（' + code + '）');
+function stripHtml(raw: string): string {
+  return String(raw || '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function parseMeanings(payload: unknown): Meaning[] {
+  const root = payload && typeof payload === 'object' ? payload as Record<string, unknown> : {};
+  const groups = Array.isArray(root.en) ? root.en : [];
+  const meanings: Meaning[] = [];
+  for (const group of groups) {
+    if (!group || typeof group !== 'object') continue;
+    const g = group as Record<string, unknown>;
+    const pos = String(g.partOfSpeech || '').trim();
+    const defsRaw = Array.isArray(g.definitions) ? g.definitions : [];
+    const definitions: Meaning['definitions'] = [];
+    for (const item of defsRaw) {
+      if (!item || typeof item !== 'object') continue;
+      const row = item as Record<string, unknown>;
+      const text = stripHtml(String(row.definition || ''));
+      if (!text) continue;
+      const examples = Array.isArray(row.examples) ? row.examples : [];
+      const example = stripHtml(String(examples[0] || ''));
+      definitions.push(example ? { definition: text, example } : { definition: text });
+    }
+    if (definitions.length) {
+      meanings.push({ partOfSpeech: pos || 'English', definitions: definitions.slice(0, 3) });
+    }
+    if (meanings.length >= 4) break;
+  }
+  return meanings;
+}
+
+async function fetchWiktionary(term: string): Promise<{ status: number; json: unknown }> {
+  const res = await fetch(WIKT_URL + encodeURIComponent(term), {
+    headers: {
+      'Accept': 'application/json',
+      'User-Agent': UA,
+      'Api-User-Agent': UA,
+    },
+  });
+  let json: unknown = null;
+  try {
+    json = await res.json();
+  } catch {
+    json = null;
+  }
+  return { status: res.status, json };
 }
 
 Deno.serve(async (req) => {
@@ -53,17 +95,8 @@ Deno.serve(async (req) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
   const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
-  const appId = (Deno.env.get('BAIDU_FANYI_APP_ID') || '').trim();
-  const secret = (Deno.env.get('BAIDU_FANYI_SECRET') || '').trim();
-
   if (!supabaseUrl || !supabaseAnonKey) {
     return jsonResponse({ error: 'Server misconfigured' }, 500);
-  }
-  if (!appId || !secret) {
-    return jsonResponse({
-      error: 'Baidu translate not configured',
-      message: '请在 Edge Functions → Secrets 配置 BAIDU_FANYI_APP_ID 和 BAIDU_FANYI_SECRET',
-    }, 500);
   }
 
   const authHeader = req.headers.get('Authorization') ?? '';
@@ -91,52 +124,38 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'Invalid word', message: '请选择有效单词' }, 400);
   }
 
-  const salt = String(Date.now());
-  const sign = md5(appId + word + salt + secret);
-  const params = new URLSearchParams({
-    q: word,
-    from: 'en',
-    to: 'zh',
-    appid: appId,
-    salt,
-    sign,
-  });
+  const candidates = [word];
+  const titled = word.charAt(0).toUpperCase() + word.slice(1);
+  if (titled !== word) candidates.push(titled);
 
-  let baidu: Record<string, unknown>;
   try {
-    const res = await fetch(BAIDU_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: params.toString(),
+    let meanings: Meaning[] = [];
+    let lastStatus = 0;
+    for (const term of candidates) {
+      const { status, json } = await fetchWiktionary(term);
+      lastStatus = status;
+      if (status === 404) continue;
+      if (status >= 500) {
+        return jsonResponse({ error: 'upstream', message: '词典暂时连不上，请稍后再试' }, 502);
+      }
+      if (!status.toString().startsWith('2')) continue;
+      meanings = parseMeanings(json);
+      if (meanings.length) break;
+    }
+
+    if (!meanings.length) {
+      const msg = lastStatus === 404 ? '暂无该词英文释义' : '暂无该词英文释义';
+      return jsonResponse({ error: 'empty', message: msg }, 404);
+    }
+
+    return jsonResponse({
+      ok: true,
+      source: 'wiktionary',
+      word,
+      phonetic: '',
+      meanings,
     });
-    baidu = await res.json();
   } catch {
     return jsonResponse({ error: 'upstream_timeout', message: '词典暂时连不上，请稍后再试' }, 502);
   }
-
-  const errCode = String(baidu?.error_code || '');
-  if (errCode && errCode !== '52000') {
-    return jsonResponse({
-      error: 'baidu_error',
-      code: errCode,
-      message: mapBaiduError(errCode),
-    }, 502);
-  }
-
-  const rows = Array.isArray(baidu?.trans_result) ? baidu.trans_result as Array<Record<string, unknown>> : [];
-  const zh = String(rows[0]?.dst || '').trim();
-  if (!zh) {
-    return jsonResponse({ error: 'empty', message: '暂无该词释义' }, 404);
-  }
-
-  return jsonResponse({
-    ok: true,
-    word,
-    phonetic: '',
-    zh,
-    meanings: [{
-      partOfSpeech: '释义',
-      definitions: [{ definition: zh }],
-    }],
-  });
 });
