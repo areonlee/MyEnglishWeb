@@ -1798,6 +1798,7 @@
     const CURRENT_USER_KEY = 'intensive-reading-current-user';
     const LAST_STUDY_STORAGE = 'intensive-reading-last-study';
     const DICT_API = 'https://api.dictionaryapi.dev/api/v2/entries/en/';
+    const LOOKUP_WORD_FUNCTION = 'lookup-word';
 
     const SUPABASE_URL = 'https://wxgrcbdzccjtveuostus.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_0cT61Y3LuiEa7PJa0V-SLQ_oRnC2K-S';
@@ -7623,7 +7624,7 @@
       try {
         const data = await fetchDictionary(clean);
         currentDictData = data;
-        const zhMap = await buildZhMap(data);
+        const zhMap = data?.[0]?._source === 'baidu' ? {} : await buildZhMap(data);
         selectedWordDefinitionZh = getFirstDefinitionZh(data, zhMap);
         if (!selectedWordContext) selectedWordContext = resolveWordContext();
         const rendered = renderDictEntriesWithZh(data, zhMap);
@@ -7632,9 +7633,11 @@
         entries.innerHTML = rendered.html;
         document.getElementById('popover-entries').innerHTML = renderPopoverEntries(data, zhMap);
         document.getElementById('popover-entries').classList.remove('hidden');
-      } catch {
-        entries.innerHTML = '<p class="text-slate-500 py-2">暂无该词英文释义</p>';
-        document.getElementById('popover-entries').innerHTML = '<p class="text-slate-500 text-sm">暂无释义</p>';
+      } catch (err) {
+        const friendly = String(err?.message || '').trim()
+          || '词典暂时连不上，请稍后再试';
+        entries.innerHTML = '<p class="text-slate-500 py-2">' + escapeHtml(friendly) + '</p>';
+        document.getElementById('popover-entries').innerHTML = '<p class="text-slate-500 text-sm">' + escapeHtml(friendly) + '</p>';
         document.getElementById('popover-entries').classList.remove('hidden');
       } finally {
         loading.classList.add('hidden');
@@ -9329,9 +9332,31 @@ Rules: Use concise Chinese for explanations. Identify at least skeleton fields. 
     }
 
     async function fetchDictionary(word) {
-      const res = await fetch(DICT_API + encodeURIComponent(word));
-      if (!res.ok) throw new Error('not found');
-      return res.json();
+      const invoked = await supabaseClient.functions.invoke(LOOKUP_WORD_FUNCTION, {
+        body: { word },
+      });
+      let payload = invoked.data;
+      if (invoked.error) {
+        try {
+          if (invoked.error.context && typeof invoked.error.context.json === 'function') {
+            payload = await invoked.error.context.json();
+          }
+        } catch { /* ignore */ }
+        throw new Error(payload?.message || payload?.error || '词典暂时连不上，请稍后再试');
+      }
+      if (!payload?.ok) {
+        throw new Error(payload?.message || payload?.error || '词典暂时连不上，请稍后再试');
+      }
+      const zh = String(payload.zh || '').trim();
+      if (!zh) throw new Error('暂无该词释义');
+      return [{
+        _source: 'baidu',
+        phonetic: payload.phonetic || '',
+        meanings: [{
+          partOfSpeech: '释义',
+          definitions: [{ definition: zh }],
+        }],
+      }];
     }
 
     function renderDictEntries(data) {
