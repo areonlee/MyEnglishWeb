@@ -9695,10 +9695,6 @@ Rules: Use concise Chinese for explanations. Identify at least skeleton fields. 
           e.stopPropagation();
           deleteVocab(item.id);
         });
-        li.addEventListener('click', (e) => {
-          if (e.target.closest('button') || e.target.closest('summary') || e.target.closest('details')) return;
-          showDictCard(item.word);
-        });
         list.appendChild(li);
       });
     }
