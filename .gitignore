@@ -1,4 +1,4 @@
-﻿# Local / editor
+# Local / editor
 .DS_Store
 Thumbs.db
 *.log
@@ -15,3 +15,9 @@ supabase/.temp/
 # Node / deploy leftovers
 node_modules/
 .vercel
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/

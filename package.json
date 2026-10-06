@@ -1,0 +1,14 @@
+{
+  "name": "myenglishweb-release-tests",
+  "private": true,
+  "description": "Playwright production smoke tests. Does not build or change the app.",
+  "scripts": {
+    "test:release": "playwright test",
+    "test:release:headed": "playwright test --headed",
+    "test:release:ui": "playwright test --ui"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1",
+    "dotenv": "^16.4.7"
+  }
+}

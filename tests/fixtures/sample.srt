@@ -1,0 +1,15 @@
+1
+00:00:00,000 --> 00:00:02,000
+Hello, this is a sample sentence for smoke tests.
+
+2
+00:00:02,000 --> 00:00:04,000
+We use it to import a course before generating a micro course.
+
+3
+00:00:04,000 --> 00:00:06,500
+The timestamps must stay aligned with the test audio.
+
+4
+00:00:06,500 --> 00:00:09,000
+Playwright uploads this file together with a short wav.
