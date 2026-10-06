@@ -1,48 +1,55 @@
 # Edge Function: `transcribe-audio`
 
-系统 AI 一键生成字幕的**服务端代理**：校验登录 JWT → 扣除 10 积分 → 使用服务端 SiliconFlow Key 转写 → 返回结果。API Key 绝不下发到浏览器。
+系统 AI 字幕代理：校验 JWT → 扣 10 积分 → 按 `provider` 转发 ASR → 统一返回 `{ text, segments }`。失败退还积分。
 
-## 1. 配置 Secrets（必做）
+## Product defaults (DEC-011)
 
-在 **Supabase Dashboard**：
+| 角色 | Provider | 说明 |
+|---|---|---|
+| **系统默认** | `sensevoice`（SiliconFlow SenseVoice） | 未传或无法识别 `provider` 时，函数回落为 `sensevoice` |
+| **更高精度（BYOK）** | 阿里云百炼 / DashScope | 用户自带 Key 的更高精度选项（由前端 BYOK 路径调用；不是系统默认） |
+| **可选兼容** | `whisper`（OpenAI） | 代码保留的可选路径；不得设为系统默认 |
 
-1. 打开 **Project Settings → Edge Functions → Secrets**（或 **Settings → Functions → Secrets**）
-2. 新增密钥：
-   - **Name**: `SILICONFLOW_API_KEY`
-   - **Value**: 粘贴你的 SiliconFlow `sk-...` Key
-3. 保存后重新部署本函数（Secrets 变更后建议 redeploy）
+## Providers（实现）
 
-> `SUPABASE_URL` / `SUPABASE_ANON_KEY` 一般由平台自动注入，无需手动添加。
+| provider | 用途 | 时间戳 |
+|---|---|---|
+| `sensevoice` | SiliconFlow `FunAudioLLM/SenseVoiceSmall`，**系统默认** | 通常无 segments，前端估算/断句 |
+| `qwen_asr` | 阿里云百炼 `qwen3-asr-flash-filetrans`（需配置对应 Key） | **必须有** `segments` |
+| `whisper` | OpenAI `whisper-1` + `verbose_json`（可选兼容） | **必须有** `segments` |
 
-## 2. 执行数据库 RPC
+精准模式（`qwen_asr` / `whisper`）若无 segments，函数返回错误并退还积分。
 
-在 SQL Editor 执行仓库中的 `supabase-schema.sql`（包含 `deduct_points_for_asr` / `refund_points_for_asr`），或单独执行其中「AI 字幕积分」一节。
+## Secrets（名称）
 
-## 3. 部署
+在 **Supabase Dashboard → Edge Functions → Secrets**：
+
+- `SILICONFLOW_API_KEY` — 系统默认 `sensevoice`（必配）
+- `DASHSCOPE_API_KEY` — 仅当走服务端 `provider=qwen_asr` 时需要（非 DEC-011 产品默认）
+- `OPENAI_API_KEY` — 仅当走服务端 `provider=whisper` 时需要
+
+前端 BYOK（用户自填 Key）不依赖上述百炼/OpenAI Secrets。
+
+## 部署
 
 ```bash
-npx supabase login
-npx supabase link --project-ref <你的项目 ref>
-npx supabase secrets set SILICONFLOW_API_KEY=sk-xxxxxxxx
 npx supabase functions deploy transcribe-audio
 ```
 
-## 4. 前端调用
+前端大陆/默认系统路径应传 `provider=sensevoice`（或不传，由函数回落）。不要把 `qwen_asr` 或 OpenAI 设为系统默认。
 
-系统模式下前端使用：
+## 返回
 
-```js
-const formData = new FormData();
-formData.append('file', audioFile);
-
-const { data, error } = await supabaseClient.functions.invoke('transcribe-audio', {
-  body: formData,
-});
+```json
+{
+  "ok": true,
+  "provider": "sensevoice",
+  "text": "...",
+  "segments": [],
+  "transcription": { "text": "...", "segments": [] },
+  "deducted": 10,
+  "points_remaining": 90
+}
 ```
 
-成功时 `data.transcription` 为 SiliconFlow 原始 JSON；前端再走 `parseAndCombineSRT` 智能断句并入库。
-
-## 注意事项
-
-- 音频体积受 Edge Function 请求体限制影响，过大文件请压缩或改用 BYOK / 本地字幕导入。
-- 默认模型：`FunAudioLLM/SenseVoiceSmall`；也可在 form 中传 `model` 字段覆盖。
+`segments[].start` / `end` 单位为秒（当 provider 提供时间轴时）。
