@@ -8022,6 +8022,9 @@
       if (/email rate limit exceeded|over_email_send_rate_limit/i.test(msg)) {
         return '确认邮件发送过于频繁，请稍后再试。若已收到邮件，请先完成确认再登录。';
       }
+      if (/error sending confirmation email|confirmation email/i.test(msg)) {
+        return '确认邮件发送失败。请检查阿里云邮件推送的 SMTP 密码、发信地址是否可用，保存后再试。';
+      }
       if (/already registered|already been registered|already exists/i.test(msg) || msg.includes('已注册')) {
         return '该邮箱已注册，请直接登录';
       }
@@ -11905,7 +11908,7 @@ Rules: Use concise Chinese for explanations. Identify at least skeleton fields. 
      * provider=sensevoice | qwen_asr | whisper
      */
     async function invokeSystemTranscribe(audioFile, onProgress, provider) {
-      const asrProvider = String(provider || 'qwen_asr').toLowerCase();
+      const asrProvider = String(provider || 'sensevoice').toLowerCase();
       const isPrecise = asrProvider === 'qwen_asr' || asrProvider === 'whisper';
       const report = (label, pct) => {
         if (typeof onProgress === 'function') onProgress(label, pct);
