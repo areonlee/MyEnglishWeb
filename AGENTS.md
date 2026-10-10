@@ -6,6 +6,8 @@ This public repository follows the MyEnglishWeb / 爱精读 governance rules.
 
 - `areonlee/MyEnglishWeb-governance`
 
+How agents work comes from the private shared governance `areonlee/ai-project-governance` (`AI_ROUTING_POLICY.md` and `agents/`). This repository's task registry (`ACTIVE_TASKS.md`) is kept in the private `areonlee/MyEnglishWeb-governance` repository.
+
 AI agents must read that private governance documentation before substantial work.
 
 If you cannot access the private repository, stop and ask the owner for access before changing billing, points, referrals, VIP/plans, or production SQL.
@@ -13,8 +15,8 @@ If you cannot access the private repository, stop and ask the owner for access b
 ## Safe rules (can be stated in public)
 
 - GitHub is the formal Source of Truth. Chat history is reference only.
-- `main` is the production / GitHub Pages release branch.
-- Feature work belongs on feature branches. Do not merge unrelated feature work into `main`.
+- `main` is the production / GitHub Pages release branch. Lee merges the pull request into `main`; merging the pull request is the release.
+- All changes (features and fixes) go on an agent-prefixed branch (`didi/`, `chatgpt/`, `cursor/`, or `lee/` + `<task-id>-<slug>`) and a pull request that Lee merges.
 - Do not mix unrelated fixes into one commit.
 - Never discard uncommitted work without explicit owner approval.
 - Never expose secrets, API keys, `service_role` keys, tokens, payment credentials, or private user data.
